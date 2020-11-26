@@ -7,6 +7,7 @@ Alternativer Titel: *Being a Cunt about Counts*
 # Transform numeric to integer
 count_them <- function(supposedly_a_count) {
   
+  # Start with assertions and meaningful messages.
   collection_assertions <- makeAssertCollection()
   if (checkmate::anyInfinite(supposedly_a_count)) {
     collection_assertions$push("Input has to be at least countable finite.")
