@@ -9,10 +9,74 @@ funktionieren oder zumindest hilfreiche Fehlermeldungen erzeugen. Benutzen Sie k
 ```{r, col_means_exdef, eval=FALSE}
 # compute means of all numeric columns in df
 # output: a data.frame
-col_means <- function(df) {
-  numeric <- vapply(df, is.numeric, logical(1))
-  numeric_cols <- df[, numeric]
-
-  data.frame(lapply(numeric_cols, mean))
+col_means <- function(df, na.rm=FALSE) {
+  
+    assert_collection <- makeAssertCollection()
+    if( !assert(checkmate::checkDataFrame(df),checkmate::checkMatrix(df),checkmate::checkAtomic(df),checkmate::checkList(df), combine = "or"))
+      assert_collection$push("Wrong Input")
+   # if( allMissing(mtcars[,0])) 
+    reportAssertions(assert_collection)
+  
+    
+    if( checkmate::checkAtomic(df) == TRUE ) df <- as.data.frame(df)
+    
+    dimension <- character(1)
+    if (checkmate::testAtomicVector(df) | checkmate::testDataFrame(df, max.cols = 1) ) dimension <- "vector"
+    if (checkmate::testMatrix(df, min.cols = 2, min.rows = 2)  | checkmate::testDataFrame(df, min.rows = 2, min.cols = 2)) {
+      dimension <- "higher_order"
+    }
+    if (checkmate::testList(df) == TRUE ) dimension <- "list"
+  
+  #function fuer Vector um Name zu behalten
+  calculate_mean_vector <- function(df){
+    name <- colnames(df)
+    result <- as.data.frame( mean(unlist(df)))
+    colnames(result) <- name
+    result
+    }
+  
+  calculate_mean_higher_dimension <- function(df){
+    numeric <- vapply(df, is.numeric, logical(1))
+    numerics_withNA <- vapply(df[,numeric], checkmate::anyMissing, logical(1))
+    
+    if( mean(numerics_withNA) != 0 & na.rm == TRUE) {
+      message( sprintf("Colum/s %s contain at leat one NA. Mean will be computed without NA",
+                       paste(which(numerics_withNA==T), collapse = ",")))
+    }
+    if( mean(numerics_withNA) != 0 & na.rm == FALSE) {
+    message( sprintf("Colum/s %s contain at leat one NA. Calculation stopped (change na.rm to TRUE) for calculation.",
+                     paste(which(numerics_withNA==T), collapse = ",")))
+    }
+    
+    numeric_cols <- df[, numeric]
+    results <- data.frame(lapply(numeric_cols, mean, na.rm=na.rm))
+  }
+  
+  calculate_mean_list <- function(df){
+    numeric <- vapply(df, is.numeric, logical(1))
+    numerics_withNA <- vapply(df[numeric], checkmate::anyMissing, logical(1))
+    
+    if( mean(numerics_withNA) != 0 & na.rm == TRUE){
+    message( sprintf("Colum/s %s contain at leat one NA. Mean will be computed without NA",
+                     paste(which(numerics_withNA==T), collapse = ",")))
+    }
+    if( mean(numerics_withNA) != 0 & na.rm == FALSE) {
+      message( sprintf("Colum/s %s contain at leat one NA. Calculation stopped (change na.rm to TRUE) for calculation).",
+                       paste(which(numerics_withNA==T), collapse = ",")))
+    }
+    numeric_cols <- df[numeric]
+    results <- data.frame(lapply(numeric_cols, mean, na.rm=na.rm))
+  }
+  
+  
+  #function fuer numerische columns
+  calculate_colmeans <- function(df,dimension){
+   switch(dimension,
+          "vector" = calculate_mean_vector(df),
+          "higher_order" = calculate_mean_higher_dimension(df),
+          "list" = calculate_mean_list(df))
+  }
+  result <- calculate_colmeans(df,dimension)
+  return(result)
 }
 ```
