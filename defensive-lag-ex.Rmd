@@ -4,7 +4,34 @@ Die Funktion `lag()` (s.u.) gibt eine Version ihres Vektor-Inputs `x` zurück, d
 tut.  Schreiben Sie ein paar simple Testfälle um ihre Modifikationen zu überprüfen -- also für Listen-, Matrizen-, oder `data.frame`-förmige `x`, ungeeignete `lag`-Werte, ...
 ```{r, lag-baddef}
 lag <- function(x, n = 1L) {
+
+  assert_collection <- makeAssertCollection()
+  if (checkmate::testList(x) | checkmate::testMatrix(x) | checkmate::testDataFrame(x)) {
+    assert_collection$push("Input has to be vector.")
+  }
+  if (length(x) - n < 0) {
+    assert_collection$push("Lag is bigger than possible.")
+  }
+  if (!checkmate::testCount(n, positive = FALSE)) {
+    assert_collection$push("n has to be positive or zero.")
+  }
+  reportAssertions(assert_collection)
+  
   xlen <- length(x)
   c(rep(NA, n), x[seq_len(xlen - n)])
 }
+
+
+
+testthat::expect_equal(lag(seq(1, 5), 1), expected = c(NA, seq(1, 4)))
+testthat::expect_equal(lag(seq(1, 5), 0), expected = seq(1, 5))
+testthat::expect_length(lag(seq(1, 5), 0), 5)
+testthat::expect_equal(mean(is.na(lag(seq(1, 5), 5))), 1)
+testthat::expect_vector(lag(seq(1, 5), 0))
+testthat::expect_error(lag(seq(1, 5), 6))
+testthat::expect_error(lag(seq(1, 5), -1))
+testthat::expect_error(lag(data.frame("a" = c(1, 2, 3), "b" = c("a", "s", "d"))))
+testthat::expect_error(lag(mtcars))
+testthat::expect_error(lag(list(seq(1, 5), rep(NA, 5))))
+
 ```
